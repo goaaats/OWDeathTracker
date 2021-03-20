@@ -273,7 +273,9 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="DeathMarker.cs" />
     <Compile Include="DeathTrackerMod.cs" />
+    <Compile Include="DeathTracking.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -290,6 +292,7 @@
       copy /y "$(TargetPath)" "$(OwmlDir)\Mods\$(ModUniqueName)"
       copy /y "$(ProjectDir)\default-config.json" "$(OwmlDir)\Mods\$(ModUniqueName)"
       copy /y "$(ProjectDir)\manifest.json" "$(OwmlDir)\Mods\$(ModUniqueName)"
+	  copy /y "$(ProjectDir)\AssetBundles\" "$(OwmlDir)\Mods\$(ModUniqueName)"
     </PostBuildEvent>
   </PropertyGroup>
 </Project>

@@ -3,8 +3,11 @@ using OWML.Common;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection.Emit;
 using System.Text;
 using Harmony;
+using OWML.Utils;
+using Tessellation;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
@@ -19,17 +22,49 @@ namespace Goaaats.DeathTracker
             // Use Start() instead.
 
             //Application.runInBackground = true;
-            
+
         }
+
+        private AssetBundle markerAssetBundle;
+        private static DeathTracking tracking = new DeathTracking();
+
 
         private void Start()
         {
-
             LoadManager.OnCompleteSceneLoad += OnCompleteSceneLoad;
 
             ModHelper.HarmonyHelper.AddPrefix<PlayerCharacterController>("OnPlayerDeath", typeof(DeathTrackerMod), nameof(OnPlayerDeath));
+            ModHelper.HarmonyHelper.AddPrefix(typeof(PlayerData).GetMethod("ResetGame"), typeof(DeathTrackerMod), nameof(ResetGame));
 
-            ModHelper.Console.WriteLine($"{nameof(DeathTrackerMod)} was loaded!asd", MessageType.Success);
+            markerAssetBundle = ModHelper.Assets.LoadBundle("deathvizassets");
+
+            ModHelper.Console.WriteLine($"{nameof(DeathTrackerMod)} was loaded! {SavePath}", MessageType.Success);
+
+            StandaloneProfileManager.SharedInstance.OnProfileReadDone += OnProfileReadDone;
+            StandaloneProfileManager.SharedInstance.OnProfileDataSaved += OnProfileDataSaved;
+        }
+
+        private static string SavePath => StandaloneProfileManager.SharedInstance.GetValue<string>("_profilesPath");
+
+        private void OnProfileDataSaved(bool success)
+        {
+            var name = StandaloneProfileManager.SharedInstance.GetActiveProfile().profileName;
+
+            tracking.Save(name, SavePath);
+            ModHelper.Console.WriteLine($"SaveData for {name} was saved. {tracking.TrackedDeaths.Count} Deaths.", MessageType.Success);
+        }
+
+        private void OnProfileReadDone()
+        {
+            var name = StandaloneProfileManager.SharedInstance.GetActiveProfile().profileName;
+
+            tracking.Load(name, SavePath);
+            ModHelper.Console.WriteLine($"SaveData for {name} was loaded. {tracking.TrackedDeaths.Count} Deaths.", MessageType.Success);
+        }
+
+        private static void ResetGame()
+        {
+            tracking.Reset();
         }
 
         private void OnCompleteSceneLoad(OWScene oldScene, OWScene newScene)
@@ -39,7 +74,32 @@ namespace Goaaats.DeathTracker
             var universe = newScene == OWScene.SolarSystem || newScene == OWScene.EyeOfTheUniverse;
             if (universe)
             {
-                
+                PlaceMarkers();
+            }
+        }
+
+        private void PlaceMarkers()
+        {
+            ModHelper.Console.WriteLine("Starting PlaceMakers()...");
+
+            var prefab = markerAssetBundle.LoadAsset("assets/deathindicator/dvdeathindicator.prefab");
+
+            foreach (var death in tracking.TrackedDeaths)
+            {
+                var ao = WeirdGetAstroObject(death.AstroObjectName);
+
+                var go = Instantiate(prefab, ao.transform) as GameObject;
+
+                //go.transform.parent = ao.transform;
+                go.transform.localPosition = new Vector3(death.PositionX, death.PositionY, death.PositionZ);
+
+                go.transform.LookAt(ao.transform);
+                go.transform.Rotate(Vector3.right, -90);
+
+                var timeSpan = TimeSpan.FromSeconds(death.SecondsElapsed);
+                go.GetAddComponent<DeathMarker>().SetupData($"#{death.LoopCount}, {timeSpan.Minutes:D2}:{timeSpan.Seconds:D2}");
+
+                ModHelper.Console.WriteLine($"Placed marker at death bound: {death.AstroObjectName}\nx:{death.PositionX} y:{death.PositionY} z:{death.PositionZ}", MessageType.Success);
             }
         }
 
@@ -67,10 +127,7 @@ namespace Goaaats.DeathTracker
 
         private void OnGUI()
         {
-            if (boundObject == null)
-                return;
 
-            GUI.Label(new Rect(0, 0, 400, 400), $"Last death bound: {GetAstroObjectName(boundObject)}");
         }
 
         private static AstroObject GetAstroObjectFromSector(IEnumerable<AstroObject> astroObjects, Sector sector)
@@ -128,11 +185,31 @@ namespace Goaaats.DeathTracker
             }
         }
 
-        private static AstroObject boundObject;
-
         private static void OnPlayerDeath(DeathType deathType)
         {
-            boundObject = GetBoundAstroObject();
+            var cc = Locator.GetPlayerController();
+
+            var boundObject = GetBoundAstroObject();
+            var boundObjectName = boundObject.GetAstroObjectName();
+
+            var relativePos = boundObject.transform.InverseTransformPoint(cc.transform.position);
+
+            tracking.TrackedDeaths.Add(new DeathTracking.Death
+            {
+                AstroObjectName = boundObjectName,
+                DeathType = deathType,
+                LoopCount = TimeLoop.GetLoopCount(),
+                SecondsElapsed = TimeLoop.GetSecondsElapsed(),
+
+                PositionX = relativePos.x,
+                PositionY = relativePos.y,
+                PositionZ = relativePos.z
+            });
+        }
+
+        private static AstroObject WeirdGetAstroObject(AstroObject.Name name)
+        {
+            return Object.FindObjectsOfType(typeof(AstroObject)).Cast<AstroObject>().First(x => x.GetAstroObjectName() == name);
         }
 
         private static string GetAstroObjectName(AstroObject astroObject)
@@ -167,7 +244,9 @@ namespace Goaaats.DeathTracker
                 };
             }).OrderBy(x => x.Distance).ToArray();
 
-            return candidateObjects.Length == 0 ? Locator.GetAstroObject(AstroObject.Name.Sun) : candidateObjects.First().AstroObject;
+            return candidateObjects.Length == 0
+                ? Locator.GetAstroObject(AstroObject.Name.Sun)
+                : candidateObjects.First().AstroObject;
         }
     }
 }
