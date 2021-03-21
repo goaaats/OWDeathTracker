@@ -47,39 +47,8 @@ namespace Goaaats.DeathTracker
             StandaloneProfileManager.SharedInstance.OnProfileDataSaved -= OnProfileDataSaved;
         }
 
-        private static string SavePath => StandaloneProfileManager.SharedInstance.GetValue<string>("_profilesPath");
-        private static string ActiveProfile => StandaloneProfileManager.SharedInstance.GetActiveProfile().profileName;
-
-        private void OnProfileDataSaved(bool success)
-        {
-            var name = ActiveProfile;
-
-            tracking.Save(SavePath);
-            ModHelper.Console.WriteLine($"{tracking.TrackedDeaths.Count} Deaths saved.", MessageType.Success);
-        }
-
-        private void OnProfileReadDone()
-        {
-            var name = ActiveProfile;
-
-            tracking.Load(SavePath);
-            ModHelper.Console.WriteLine($"{tracking.TrackedDeaths.Count} Deaths loaded.", MessageType.Success);
-        }
-
-        private static void ResetGame()
-        {
-            tracking.Reset(ActiveProfile);
-        }
-
-        private static void DeleteProfile(string profileName)
-        {
-            tracking.Reset(profileName);
-        }
-
         private void OnCompleteSceneLoad(OWScene oldScene, OWScene newScene)
         {
-            ModHelper.Console.WriteLine($"COMPLETE SCENE LOAD ({oldScene} -> {newScene})", MessageType.Info);
-
             var universe = newScene == OWScene.SolarSystem || newScene == OWScene.EyeOfTheUniverse;
             if (universe)
             {
@@ -95,17 +64,17 @@ namespace Goaaats.DeathTracker
 
             foreach (var death in trackedDeaths)
             {
-                var ao = GetSectorFromScene(death.SectorName);
+                var boundSector = GetSectorFromScene(death.SectorName);
 
-                var go = Instantiate(prefab, ao.transform) as GameObject;
+                var markerObject = Instantiate(prefab, boundSector.transform) as GameObject;
 
-                go.transform.localPosition = new Vector3(death.PositionX, death.PositionY, death.PositionZ);
+                markerObject.transform.localPosition = new Vector3(death.PositionX, death.PositionY, death.PositionZ);
 
-                go.transform.LookAt(ao.transform);
-                go.transform.Rotate(Vector3.right, -90);
+                markerObject.transform.LookAt(boundSector.transform);
+                markerObject.transform.Rotate(Vector3.right, -90);
 
                 var timeSpan = TimeSpan.FromSeconds(death.SecondsElapsed);
-                var marker = go.GetAddComponent<DeathMarker>();
+                var marker = markerObject.GetAddComponent<DeathMarker>();
                 marker.InfoLabelContent = $"#{death.LoopCount}, {timeSpan.Minutes:D2}:{timeSpan.Seconds:D2}";
                 marker.NameLabelContent = death.ProfileName;
 
@@ -167,26 +136,61 @@ namespace Goaaats.DeathTracker
 
             var sectors = Object.FindObjectsOfType(typeof(Sector)).Cast<Sector>().ToArray();
 
-            var candidateSectors = sectors.Where(x => x.transform.gameObject.activeInHierarchy && !x.IsBrambleDimension() &&
-                                                      x.ContainsAnyOccupants(DynamicOccupant.Player) && ignoredSectors.All(y => y != x.GetName())).ToArray();
-
-            var candidateObjects = candidateSectors.Select(x =>
-            {
-                var dist = Vector3.Distance(x.transform.position, cc.transform.position);
-
-                return new WorkSector
+            var candidateSectors = sectors.Where(x =>
+                    x.transform.gameObject.activeInHierarchy && !x.IsBrambleDimension() &&
+                    x.ContainsAnyOccupants(DynamicOccupant.Player) && ignoredSectors.All(y => y != x.GetName()))
+                .Select(x => // Thanks .NET 3.5
                 {
-                    Sector = x,
-                    Distance = dist
-                };
-            }).OrderBy(x => x.Distance).ToArray();
+                    var dist = Vector3.Distance(x.transform.position, cc.transform.position);
 
-            return candidateObjects.Length == 0
+                    return new WorkSector
+                    {
+                        Sector = x,
+                        Distance = dist
+                    };
+                }).OrderBy(x => x.Distance).ToArray();
+
+            return candidateSectors.Length == 0
                 ? sectors.First(x => x.GetName() == Sector.Name.Sun)
-                : candidateObjects.First().Sector;
+                : candidateSectors.First().Sector;
         }
 
         #endregion
+
+        #region Save/Load
+
+        private static string SavePath => StandaloneProfileManager.SharedInstance.GetValue<string>("_profilesPath");
+        private static string ActiveProfile => StandaloneProfileManager.SharedInstance.GetActiveProfile().profileName;
+
+        private void OnProfileDataSaved(bool success)
+        {
+            var name = ActiveProfile;
+
+            tracking.Save(SavePath);
+            ModHelper.Console.WriteLine($"{tracking.TrackedDeaths.Count} Deaths saved.", MessageType.Success);
+        }
+
+        private void OnProfileReadDone()
+        {
+            var name = ActiveProfile;
+
+            tracking.Load(SavePath);
+            ModHelper.Console.WriteLine($"{tracking.TrackedDeaths.Count} Deaths loaded.", MessageType.Success);
+        }
+
+        private static void ResetGame()
+        {
+            tracking.Reset(ActiveProfile);
+        }
+
+        private static void DeleteProfile(string profileName)
+        {
+            tracking.Reset(profileName);
+        }
+
+        #endregion
+
+        #region Config
 
         public static bool ShowOtherProfiles { get; private set; }
 
@@ -194,5 +198,7 @@ namespace Goaaats.DeathTracker
         {
             ShowOtherProfiles = config.GetSettingsValue<bool>("showOtherProfiles");
         }
+
+        #endregion
     }
 }
