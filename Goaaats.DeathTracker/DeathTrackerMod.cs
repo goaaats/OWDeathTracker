@@ -95,7 +95,7 @@ namespace Goaaats.DeathTracker
 
             foreach (var death in trackedDeaths)
             {
-                var ao = WeirdGetAstroObject(death.AstroObjectName);
+                var ao = GetSectorFromScene(death.SectorName);
 
                 var go = Instantiate(prefab, ao.transform) as GameObject;
 
@@ -109,74 +109,7 @@ namespace Goaaats.DeathTracker
                 marker.InfoLabelContent = $"#{death.LoopCount}, {timeSpan.Minutes:D2}:{timeSpan.Seconds:D2}";
                 marker.NameLabelContent = death.ProfileName;
 
-                ModHelper.Console.WriteLine($"Placed marker at death bound: {death.AstroObjectName}\nx:{death.PositionX} y:{death.PositionY} z:{death.PositionZ}", MessageType.Success);
-            }
-        }
-
-        private static Sector.Name[] ignoredSectors = new[]
-        {
-            Sector.Name.Ship, Sector.Name.Unnamed, Sector.Name.BrambleDimension, Sector.Name.Vessel,
-            Sector.Name.VesselDimension, Sector.Name.HourglassTwins
-        };
-
-        struct WorkAstroObject
-        {
-            public AstroObject AstroObject;
-            public float Distance;
-        }
-
-        private static AstroObject GetAstroObjectFromSector(IEnumerable<AstroObject> astroObjects, Sector sector)
-        {
-            switch (sector.GetName())
-            {
-                case Sector.Name.Unnamed:
-                    throw new ArgumentException("Cannot get AstroObject for unnamed sector");
-                case Sector.Name.Sun:
-                    return astroObjects.First(x => x.GetAstroObjectName() == AstroObject.Name.Sun);
-                case Sector.Name.HourglassTwin_A:
-                    return astroObjects.First(x => x.GetAstroObjectName() == AstroObject.Name.CaveTwin);
-                case Sector.Name.HourglassTwin_B:
-                    return astroObjects.First(x => x.GetAstroObjectName() == AstroObject.Name.TowerTwin);
-                case Sector.Name.TimberHearth:
-                    return astroObjects.First(x => x.GetAstroObjectName() == AstroObject.Name.TimberHearth);
-                case Sector.Name.BrittleHollow:
-                    return astroObjects.First(x => x.GetAstroObjectName() == AstroObject.Name.BrittleHollow);
-                case Sector.Name.GiantsDeep:
-                    return astroObjects.First(x => x.GetAstroObjectName() == AstroObject.Name.GiantsDeep);
-                case Sector.Name.DarkBramble:
-                    return astroObjects.First(x => x.GetAstroObjectName() == AstroObject.Name.DarkBramble);
-                case Sector.Name.Comet:
-                    return astroObjects.First(x => x.GetAstroObjectName() == AstroObject.Name.Comet);
-                case Sector.Name.QuantumMoon:
-                    return astroObjects.First(x => x.GetAstroObjectName() == AstroObject.Name.QuantumMoon);
-                case Sector.Name.TimberMoon:
-                    return astroObjects.First(x => x.GetAstroObjectName() == AstroObject.Name.TimberMoon);
-                case Sector.Name.BrambleDimension:
-                    throw new ArgumentException($"Cannot get AstroObject for {sector}");
-                case Sector.Name.VolcanicMoon:
-                    return astroObjects.First(x => x.GetAstroObjectName() == AstroObject.Name.VolcanicMoon);
-                case Sector.Name.OrbitalProbeCannon:
-                    return astroObjects.First(x => x.GetAstroObjectName() == AstroObject.Name.ProbeCannon);
-                case Sector.Name.EyeOfTheUniverse:
-                    return astroObjects.First(x => x.GetAstroObjectName() == AstroObject.Name.Eye);
-                case Sector.Name.Ship:
-                    throw new ArgumentException($"Cannot get AstroObject for {sector}");
-                case Sector.Name.SunStation:
-                    return astroObjects.First(x => x.GetAstroObjectName() == AstroObject.Name.SunStation);
-                case Sector.Name.WhiteHole:
-                    return astroObjects.First(x => x.GetAstroObjectName() == AstroObject.Name.WhiteHole);
-                case Sector.Name.TimeLoopDevice:
-                    throw new ArgumentException($"Cannot get AstroObject for {sector}");
-                case Sector.Name.Vessel:
-                    throw new ArgumentException($"Cannot get AstroObject for {sector}");
-                case Sector.Name.VesselDimension:
-                    throw new ArgumentException($"Cannot get AstroObject for {sector}");
-                case Sector.Name.HourglassTwins:
-                    return astroObjects.First(x => x.GetAstroObjectName() == AstroObject.Name.HourglassTwins);
-                case Sector.Name.InvisiblePlanet:
-                    return astroObjects.First(x => x.GetAstroObjectName() == AstroObject.Name.InvisiblePlanet);
-                default:
-                    throw new ArgumentOutOfRangeException();
+                ModHelper.Console.WriteLine($"Placed marker at death bound: {death.SectorName}\nx:{death.PositionX} y:{death.PositionY} z:{death.PositionZ}", MessageType.Success);
             }
         }
 
@@ -184,16 +117,16 @@ namespace Goaaats.DeathTracker
         {
             var cc = Locator.GetPlayerController();
 
-            var boundObject = GetBoundAstroObject();
-            var boundObjectName = boundObject.GetAstroObjectName();
+            var boundSector = GetBoundSector();
+            var boundSectorName = boundSector.GetName();
 
-            var relativePos = boundObject.transform.InverseTransformPoint(cc.transform.position);
+            var relativePos = boundSector.transform.InverseTransformPoint(cc.transform.position);
 
             tracking.TrackedDeaths.Add(new DeathTracking.Death
             {
                 ProfileName = ActiveProfile,
 
-                AstroObjectName = boundObjectName,
+                SectorName = boundSectorName,
                 DeathType = deathType,
                 LoopCount = TimeLoop.GetLoopCount(),
                 SecondsElapsed = TimeLoop.GetSecondsElapsed(),
@@ -202,49 +135,58 @@ namespace Goaaats.DeathTracker
                 PositionY = relativePos.y,
                 PositionZ = relativePos.z
             });
+
+            Debug.Log($"Death: {boundSectorName}");
         }
 
-        private static AstroObject WeirdGetAstroObject(AstroObject.Name name)
+        #region SectorHandling
+
+        private static readonly Sector.Name[] ignoredSectors = new[]
         {
-            return Object.FindObjectsOfType(typeof(AstroObject)).Cast<AstroObject>().First(x => x.GetAstroObjectName() == name);
-        }
+            Sector.Name.Ship, Sector.Name.Unnamed, Sector.Name.BrambleDimension, Sector.Name.Vessel,
+            Sector.Name.VesselDimension, Sector.Name.HourglassTwins
+        };
 
-        private static string GetAstroObjectName(AstroObject astroObject)
+        struct WorkSector
         {
-            return astroObject.GetAstroObjectName() == AstroObject.Name.CustomString
-                ? astroObject.GetCustomName()
-                : astroObject.GetAstroObjectName().ToString();
+            public Sector Sector;
+            public float Distance;
         }
 
-        private static AstroObject GetBoundAstroObject()
+        private static Sector GetSectorFromScene(Sector.Name name)
+        {
+            return Object.FindObjectsOfType(typeof(Sector)).Cast<Sector>().First(x => x.GetName() == name);
+        }
+
+        private static Sector GetBoundSector()
         {
             var cc = Locator.GetPlayerController();
 
             if (cc == null)
                 throw new Exception("PlayerCharacterController was null.");
 
-            var sectors = Object.FindObjectsOfType(typeof(Sector)).Cast<Sector>();
-            var astroObjects = Object.FindObjectsOfType(typeof(AstroObject)).Cast<AstroObject>();
+            var sectors = Object.FindObjectsOfType(typeof(Sector)).Cast<Sector>().ToArray();
 
             var candidateSectors = sectors.Where(x => x.transform.gameObject.activeInHierarchy && !x.IsBrambleDimension() &&
                                                       x.ContainsAnyOccupants(DynamicOccupant.Player) && ignoredSectors.All(y => y != x.GetName())).ToArray();
 
             var candidateObjects = candidateSectors.Select(x =>
             {
-                var astroObj = GetAstroObjectFromSector(astroObjects, x);
-                var dist = Vector3.Distance(astroObj.transform.position, cc.transform.position);
+                var dist = Vector3.Distance(x.transform.position, cc.transform.position);
 
-                return new WorkAstroObject
+                return new WorkSector
                 {
-                    AstroObject = astroObj,
+                    Sector = x,
                     Distance = dist
                 };
             }).OrderBy(x => x.Distance).ToArray();
 
             return candidateObjects.Length == 0
-                ? Locator.GetAstroObject(AstroObject.Name.Sun)
-                : candidateObjects.First().AstroObject;
+                ? sectors.First(x => x.GetName() == Sector.Name.Sun)
+                : candidateObjects.First().Sector;
         }
+
+        #endregion
 
         public static bool ShowOtherProfiles { get; private set; }
 

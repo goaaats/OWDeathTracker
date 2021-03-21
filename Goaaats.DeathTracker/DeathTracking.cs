@@ -28,7 +28,7 @@ namespace Goaaats.DeathTracker
             public float PositionY { get; set; }
             public float PositionZ { get; set; }
 
-            public AstroObject.Name AstroObjectName { get; set; }
+            public Sector.Name SectorName { get; set; }
         }
 
         public List<Death> TrackedDeaths { get; set; }
