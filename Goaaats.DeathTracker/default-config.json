@@ -1,7 +1,7 @@
 {
 	"enabled": true,
 	"settings": {
-    "showOtherProfiles": { // toggle with explicit labels
+    "showOtherProfiles": {
       "type": "toggle",
       "value": true,
       "yes": "Show",
