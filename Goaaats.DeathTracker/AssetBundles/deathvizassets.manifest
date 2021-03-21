@@ -1,12 +1,12 @@
 ManifestFileVersion: 0
-CRC: 2431544078
+CRC: 130863297
 Hashes:
   AssetFileHash:
     serializedVersion: 2
-    Hash: f276f6fbe68df68fb4ef07edef7fa875
+    Hash: 2c29fcc45292aea449861a307afe84cd
   TypeTreeHash:
     serializedVersion: 2
-    Hash: 3c624eec404d08fedab32a531cc57683
+    Hash: 3d917cf794bb01e3eb272e38ce60679e
 HashAppended: 0
 ClassTypes:
 - Class: 1
@@ -15,13 +15,7 @@ ClassTypes:
   Script: {instanceID: 0}
 - Class: 21
   Script: {instanceID: 0}
-- Class: 23
-  Script: {instanceID: 0}
 - Class: 28
-  Script: {instanceID: 0}
-- Class: 33
-  Script: {instanceID: 0}
-- Class: 43
   Script: {instanceID: 0}
 - Class: 48
   Script: {instanceID: 0}
@@ -59,7 +53,6 @@ Assets:
 - Assets/DeathIndicator/DVDeathIndicator.controller
 - Assets/DeathIndicator/DVDeathIndicator.prefab
 - Assets/DeathIndicator/DVSpriteMat.mat
-- Assets/Props_NOM_Mask_NewGeo.obj
 - Assets/DeathIndicator/DVDeathIndicatorAnim.anim
 - Assets/DeathIndicator/ded.png
 Dependencies: []

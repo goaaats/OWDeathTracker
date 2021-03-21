@@ -17,54 +17,63 @@ namespace Goaaats.DeathTracker
     {
         private void Awake()
         {
-            // You won't be able to access OWML's mod helper in Awake.
-            // So you probably don't want to do anything here.
-            // Use Start() instead.
-
             //Application.runInBackground = true;
-
         }
 
         private AssetBundle markerAssetBundle;
-        private static DeathTracking tracking = new DeathTracking();
-
+        private static readonly DeathTracking tracking = new DeathTracking();
 
         private void Start()
         {
             LoadManager.OnCompleteSceneLoad += OnCompleteSceneLoad;
 
+            StandaloneProfileManager.SharedInstance.OnProfileReadDone += OnProfileReadDone;
+            StandaloneProfileManager.SharedInstance.OnProfileDataSaved += OnProfileDataSaved;
+
             ModHelper.HarmonyHelper.AddPrefix<PlayerCharacterController>("OnPlayerDeath", typeof(DeathTrackerMod), nameof(OnPlayerDeath));
             ModHelper.HarmonyHelper.AddPrefix(typeof(PlayerData).GetMethod("ResetGame"), typeof(DeathTrackerMod), nameof(ResetGame));
+            ModHelper.HarmonyHelper.AddPrefix(typeof(StandaloneProfileManager).GetMethod("DeleteProfile"), typeof(DeathTrackerMod), nameof(DeleteProfile));
 
             markerAssetBundle = ModHelper.Assets.LoadBundle("deathvizassets");
 
             ModHelper.Console.WriteLine($"{nameof(DeathTrackerMod)} was loaded! {SavePath}", MessageType.Success);
+        }
 
-            StandaloneProfileManager.SharedInstance.OnProfileReadDone += OnProfileReadDone;
-            StandaloneProfileManager.SharedInstance.OnProfileDataSaved += OnProfileDataSaved;
+        private void OnDestroy()
+        {
+            LoadManager.OnCompleteSceneLoad -= OnCompleteSceneLoad;
+
+            StandaloneProfileManager.SharedInstance.OnProfileReadDone -= OnProfileReadDone;
+            StandaloneProfileManager.SharedInstance.OnProfileDataSaved -= OnProfileDataSaved;
         }
 
         private static string SavePath => StandaloneProfileManager.SharedInstance.GetValue<string>("_profilesPath");
+        private static string ActiveProfile => StandaloneProfileManager.SharedInstance.GetActiveProfile().profileName;
 
         private void OnProfileDataSaved(bool success)
         {
-            var name = StandaloneProfileManager.SharedInstance.GetActiveProfile().profileName;
+            var name = ActiveProfile;
 
-            tracking.Save(name, SavePath);
-            ModHelper.Console.WriteLine($"SaveData for {name} was saved. {tracking.TrackedDeaths.Count} Deaths.", MessageType.Success);
+            tracking.Save(SavePath);
+            ModHelper.Console.WriteLine($"{tracking.TrackedDeaths.Count} Deaths saved.", MessageType.Success);
         }
 
         private void OnProfileReadDone()
         {
-            var name = StandaloneProfileManager.SharedInstance.GetActiveProfile().profileName;
+            var name = ActiveProfile;
 
-            tracking.Load(name, SavePath);
-            ModHelper.Console.WriteLine($"SaveData for {name} was loaded. {tracking.TrackedDeaths.Count} Deaths.", MessageType.Success);
+            tracking.Load(SavePath);
+            ModHelper.Console.WriteLine($"{tracking.TrackedDeaths.Count} Deaths loaded.", MessageType.Success);
         }
 
         private static void ResetGame()
         {
-            tracking.Reset();
+            tracking.Reset(ActiveProfile);
+        }
+
+        private static void DeleteProfile(string profileName)
+        {
+            tracking.Reset(profileName);
         }
 
         private void OnCompleteSceneLoad(OWScene oldScene, OWScene newScene)
@@ -84,7 +93,9 @@ namespace Goaaats.DeathTracker
 
             var prefab = markerAssetBundle.LoadAsset("assets/deathindicator/dvdeathindicator.prefab");
 
-            foreach (var death in tracking.TrackedDeaths)
+            var trackedDeaths = ShowOtherProfiles ? tracking.TrackedDeaths : tracking.GetAllForProfile(ActiveProfile);
+
+            foreach (var death in trackedDeaths)
             {
                 var ao = WeirdGetAstroObject(death.AstroObjectName);
 
@@ -97,20 +108,12 @@ namespace Goaaats.DeathTracker
                 go.transform.Rotate(Vector3.right, -90);
 
                 var timeSpan = TimeSpan.FromSeconds(death.SecondsElapsed);
-                go.GetAddComponent<DeathMarker>().SetupData($"#{death.LoopCount}, {timeSpan.Minutes:D2}:{timeSpan.Seconds:D2}");
+                var marker = go.GetAddComponent<DeathMarker>();
+                marker.InfoLabelContent = $"#{death.LoopCount}, {timeSpan.Minutes:D2}:{timeSpan.Seconds:D2}";
+                marker.NameLabelContent = death.ProfileName;
 
                 ModHelper.Console.WriteLine($"Placed marker at death bound: {death.AstroObjectName}\nx:{death.PositionX} y:{death.PositionY} z:{death.PositionZ}", MessageType.Success);
             }
-        }
-
-        private void OnDestroy()
-        {
-            //LoadManager.OnCompleteSceneLoad -= OnCompleteSceneLoad;
-            //ModHelper.HarmonyHelper.Unpatch<PlayerCharacterController>("OnPlayerDeath", PatchType.Prefix);
-
-            //GlobalMessenger<DeathType>.RemoveListener("PlayerDeath", OnPlayerDeath);
-
-            //ModHelper.Console.WriteLine($"OnDestroy!", MessageType.Success);
         }
 
         private static Sector.Name[] ignoredSectors = new[]
@@ -196,6 +199,8 @@ namespace Goaaats.DeathTracker
 
             tracking.TrackedDeaths.Add(new DeathTracking.Death
             {
+                ProfileName = ActiveProfile,
+
                 AstroObjectName = boundObjectName,
                 DeathType = deathType,
                 LoopCount = TimeLoop.GetLoopCount(),
@@ -247,6 +252,13 @@ namespace Goaaats.DeathTracker
             return candidateObjects.Length == 0
                 ? Locator.GetAstroObject(AstroObject.Name.Sun)
                 : candidateObjects.First().AstroObject;
+        }
+
+        public static bool ShowOtherProfiles { get; private set; }
+
+        public override void Configure(IModConfig config)
+        {
+            ShowOtherProfiles = config.GetSettingsValue<bool>("showOtherProfiles");
         }
     }
 }

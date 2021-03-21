@@ -18,6 +18,8 @@ namespace Goaaats.DeathTracker
 
         public class Death
         {
+            public string ProfileName { get; set; }
+
             public DeathType DeathType { get; set; }
             public int LoopCount { get; set; }
             public float SecondsElapsed { get; set; }
@@ -31,22 +33,25 @@ namespace Goaaats.DeathTracker
 
         public List<Death> TrackedDeaths { get; set; }
 
-        public void Load(string name, string path)
+        public void Load(string path)
         {
-            var savePath = Path.Combine(path, $"Deaths-{name}.json");
+            var savePath = Path.Combine(path, "Deaths.json");
 
             if (File.Exists(savePath))
                 TrackedDeaths = JsonConvert.DeserializeObject<List<Death>>(File.ReadAllText(savePath));
         }
 
-        public void Save(string name, string path)
+        public void Save(string path)
         {
-            File.WriteAllText(Path.Combine(path, $"Deaths-{name}.json"), JsonConvert.SerializeObject(TrackedDeaths));
+            File.WriteAllText(Path.Combine(path, "Deaths.json"), JsonConvert.SerializeObject(TrackedDeaths));
         }
 
-        public void Reset()
+        public IEnumerable<Death> GetAllForProfile(string name) => TrackedDeaths.Where(x => x.ProfileName == name);
+
+        public void Reset(string playerName)
         {
-            TrackedDeaths.Clear();
+            Debug.Log($"Resetting deaths for {playerName}");
+            TrackedDeaths = TrackedDeaths.Where(x => x.ProfileName != playerName).ToList();
         }
     }
 }

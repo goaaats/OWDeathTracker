@@ -9,36 +9,40 @@ namespace Goaaats.DeathTracker
 {
     class DeathMarker : MonoBehaviour
     {
+        private Transform canvasTransform;
 
-        private GameObject FaceSprite;
-        private GameObject Text;
+        private Text infoText;
+        private Text nameText;
 
         private Transform target;
 
-        private Quaternion initialRotation;
+        public string InfoLabelContent;
+        public string NameLabelContent;
 
         private void Start()
         {
-            initialRotation = transform.localRotation;
+            canvasTransform = transform.GetComponentInChildren<Canvas>().transform;
 
-            FaceSprite = GetComponentInChildren<SpriteRenderer>().gameObject;
-            Text = GetComponentInChildren<Text>().gameObject;
+            var texts = transform.GetComponentsInChildren<Text>();
+            infoText = texts[0];
+            nameText = texts[1];
 
             target = Locator.GetPlayerTransform();
+
+            var font = Resources.Load<Font>(@"fonts/english - latin/SpaceMono-Regular_Dynamic");
+
+            infoText.text = InfoLabelContent;
+            infoText.font = font;
+
+            nameText.text = NameLabelContent;
+            nameText.font = font;
         }
 
         private void LateUpdate()
         {
             //transform.forward = target.forward;
             //transform.Rotate(Vector3.right, 90);
-            Text.transform.rotation = target.rotation;
-        }
-
-        public void SetupData(string info)
-        {
-            var text = GetComponentInChildren<Text>();
-            text.text = info;
-            text.font = Resources.Load<Font>(@"fonts/english - latin/SpaceMono-Regular_Dynamic");
+            canvasTransform.rotation = target.rotation;
         }
     }
 }
