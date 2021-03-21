@@ -89,8 +89,6 @@ namespace Goaaats.DeathTracker
 
         private void PlaceMarkers()
         {
-            ModHelper.Console.WriteLine("Starting PlaceMakers()...");
-
             var prefab = markerAssetBundle.LoadAsset("assets/deathindicator/dvdeathindicator.prefab");
 
             var trackedDeaths = ShowOtherProfiles ? tracking.TrackedDeaths : tracking.GetAllForProfile(ActiveProfile);
@@ -101,7 +99,6 @@ namespace Goaaats.DeathTracker
 
                 var go = Instantiate(prefab, ao.transform) as GameObject;
 
-                //go.transform.parent = ao.transform;
                 go.transform.localPosition = new Vector3(death.PositionX, death.PositionY, death.PositionZ);
 
                 go.transform.LookAt(ao.transform);
@@ -126,11 +123,6 @@ namespace Goaaats.DeathTracker
         {
             public AstroObject AstroObject;
             public float Distance;
-        }
-
-        private void OnGUI()
-        {
-
         }
 
         private static AstroObject GetAstroObjectFromSector(IEnumerable<AstroObject> astroObjects, Sector sector)
