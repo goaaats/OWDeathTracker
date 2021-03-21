@@ -4,6 +4,6 @@
   "name": "Death Tracker",
   "uniqueName": "Goaaats.DeathTracker",
   "description": "Tracks where and when you died, and shows it in the world.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "owmlVersion": "1.1.8"
 }
