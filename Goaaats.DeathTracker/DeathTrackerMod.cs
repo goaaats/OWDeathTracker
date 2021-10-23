@@ -1,13 +1,8 @@
 ﻿using OWML.ModHelper;
 using OWML.Common;
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Reflection.Emit;
-using System.Text;
-using Harmony;
 using OWML.Utils;
-using Tessellation;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
@@ -15,7 +10,7 @@ namespace Goaaats.DeathTracker
 {
     public class DeathTrackerMod : ModBehaviour
     {
-        private void Awake()
+        private static void Awake()
         {
             //Application.runInBackground = true;
         }
@@ -160,11 +155,11 @@ namespace Goaaats.DeathTracker
         #region Save/Load
 
         private static string SavePath => StandaloneProfileManager.SharedInstance.GetValue<string>("_profilesPath");
-        private static string ActiveProfile => StandaloneProfileManager.SharedInstance.GetActiveProfile().profileName;
+        private static string ActiveProfile => StandaloneProfileManager.SharedInstance.GetValue<string>("profileName");
 
         private void OnProfileDataSaved(bool success)
         {
-            var name = ActiveProfile;
+            //var name = ActiveProfile;
 
             tracking.Save(SavePath);
             ModHelper.Console.WriteLine($"{tracking.TrackedDeaths.Count} Deaths saved.", MessageType.Success);
@@ -172,7 +167,7 @@ namespace Goaaats.DeathTracker
 
         private void OnProfileReadDone()
         {
-            var name = ActiveProfile;
+            //var name = ActiveProfile;
 
             tracking.Load(SavePath);
             ModHelper.Console.WriteLine($"{tracking.TrackedDeaths.Count} Deaths loaded.", MessageType.Success);
