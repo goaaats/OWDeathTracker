@@ -4,7 +4,6 @@ using System;
 using System.Linq;
 using OWML.Utils;
 using UnityEngine;
-using Object = UnityEngine.Object;
 
 namespace Goaaats.DeathTracker
 {
@@ -44,8 +43,7 @@ namespace Goaaats.DeathTracker
 
         private void OnCompleteSceneLoad(OWScene oldScene, OWScene newScene)
         {
-            var universe = newScene == OWScene.SolarSystem || newScene == OWScene.EyeOfTheUniverse;
-            if (universe)
+            if (newScene == OWScene.SolarSystem || newScene == OWScene.EyeOfTheUniverse)
             {
                 PlaceMarkers();
             }
@@ -81,7 +79,7 @@ namespace Goaaats.DeathTracker
         {
             var cc = Locator.GetPlayerController();
 
-            var boundSector = GetBoundSector();
+            var boundSector = GetBoundSector(cc);
             var boundSectorName = boundSector.GetName();
 
             var relativePos = boundSector.transform.InverseTransformPoint(cc.transform.position);
@@ -119,17 +117,15 @@ namespace Goaaats.DeathTracker
 
         private static Sector GetSectorFromScene(Sector.Name name)
         {
-            return Object.FindObjectsOfType(typeof(Sector)).Cast<Sector>().First(x => x.GetName() == name);
+            return FindObjectsOfType(typeof(Sector)).Cast<Sector>().First(x => x.GetName() == name);
         }
 
-        private static Sector GetBoundSector()
+        private static Sector GetBoundSector(PlayerCharacterController cc)
         {
-            var cc = Locator.GetPlayerController();
-
             if (cc == null)
                 throw new Exception("PlayerCharacterController was null.");
 
-            var sectors = Object.FindObjectsOfType(typeof(Sector)).Cast<Sector>().ToArray();
+            var sectors = FindObjectsOfType(typeof(Sector)).Cast<Sector>().ToArray();
 
             var candidateSectors = sectors.Where(x =>
                     x.transform.gameObject.activeInHierarchy && !x.IsBrambleDimension() &&
@@ -155,20 +151,16 @@ namespace Goaaats.DeathTracker
         #region Save/Load
 
         private static string SavePath => StandaloneProfileManager.SharedInstance.GetValue<string>("_profilesPath");
-        private static string ActiveProfile => StandaloneProfileManager.SharedInstance.GetValue<string>("profileName");
+        private static string ActiveProfile => StandaloneProfileManager.SharedInstance.currentProfile.profileName; //StandaloneProfileManager.SharedInstance.GetValue<string>("_profileName");
 
         private void OnProfileDataSaved(bool success)
         {
-            //var name = ActiveProfile;
-
             tracking.Save(SavePath);
             ModHelper.Console.WriteLine($"{tracking.TrackedDeaths.Count} Deaths saved.", MessageType.Success);
         }
 
         private void OnProfileReadDone()
         {
-            //var name = ActiveProfile;
-
             tracking.Load(SavePath);
             ModHelper.Console.WriteLine($"{tracking.TrackedDeaths.Count} Deaths loaded.", MessageType.Success);
         }

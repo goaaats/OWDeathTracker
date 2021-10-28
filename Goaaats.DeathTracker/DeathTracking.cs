@@ -40,7 +40,7 @@ namespace Goaaats.DeathTracker
 
         public void Save(string path)
         {
-            File.WriteAllText(Path.Combine(path, "Deaths.json"), JsonConvert.SerializeObject(TrackedDeaths));
+            File.WriteAllText(Path.Combine(path, "Deaths.json"), JsonConvert.SerializeObject(TrackedDeaths, Formatting.Indented));
         }
 
         public IEnumerable<Death> GetAllForProfile(string name) => TrackedDeaths.Where(x => x.ProfileName == name);
