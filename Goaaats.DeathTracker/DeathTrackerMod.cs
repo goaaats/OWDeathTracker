@@ -9,10 +9,10 @@ namespace Goaaats.DeathTracker
 {
     public class DeathTrackerMod : ModBehaviour
     {
-        private static void Awake()
-        {
-            //Application.runInBackground = true;
-        }
+        //private static void Awake()
+        //{
+        //    //Application.runInBackground = true;
+        //}
 
         private AssetBundle markerAssetBundle;
         private static readonly DeathTracking tracking = new DeathTracking();
@@ -151,7 +151,7 @@ namespace Goaaats.DeathTracker
         #region Save/Load
 
         private static string SavePath => StandaloneProfileManager.SharedInstance.GetValue<string>("_profilesPath");
-        private static string ActiveProfile => StandaloneProfileManager.SharedInstance.currentProfile.profileName; //StandaloneProfileManager.SharedInstance.GetValue<string>("_profileName");
+        private static string ActiveProfile => StandaloneProfileManager.SharedInstance.currentProfile.profileName; 
 
         private void OnProfileDataSaved(bool success)
         {
