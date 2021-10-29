@@ -1,24 +1,18 @@
 ﻿using OWML.ModHelper;
 using OWML.Common;
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Reflection.Emit;
-using System.Text;
-using Harmony;
 using OWML.Utils;
-using Tessellation;
 using UnityEngine;
-using Object = UnityEngine.Object;
 
 namespace Goaaats.DeathTracker
 {
     public class DeathTrackerMod : ModBehaviour
     {
-        private void Awake()
-        {
-            //Application.runInBackground = true;
-        }
+        //private static void Awake()
+        //{
+        //    //Application.runInBackground = true;
+        //}
 
         private AssetBundle markerAssetBundle;
         private static readonly DeathTracking tracking = new DeathTracking();
@@ -49,8 +43,7 @@ namespace Goaaats.DeathTracker
 
         private void OnCompleteSceneLoad(OWScene oldScene, OWScene newScene)
         {
-            var universe = newScene == OWScene.SolarSystem || newScene == OWScene.EyeOfTheUniverse;
-            if (universe)
+            if (newScene == OWScene.SolarSystem || newScene == OWScene.EyeOfTheUniverse)
             {
                 PlaceMarkers();
             }
@@ -86,7 +79,7 @@ namespace Goaaats.DeathTracker
         {
             var cc = Locator.GetPlayerController();
 
-            var boundSector = GetBoundSector();
+            var boundSector = GetBoundSector(cc);
             var boundSectorName = boundSector.GetName();
 
             var relativePos = boundSector.transform.InverseTransformPoint(cc.transform.position);
@@ -124,17 +117,15 @@ namespace Goaaats.DeathTracker
 
         private static Sector GetSectorFromScene(Sector.Name name)
         {
-            return Object.FindObjectsOfType(typeof(Sector)).Cast<Sector>().First(x => x.GetName() == name);
+            return FindObjectsOfType(typeof(Sector)).Cast<Sector>().First(x => x.GetName() == name);
         }
 
-        private static Sector GetBoundSector()
+        private static Sector GetBoundSector(PlayerCharacterController cc)
         {
-            var cc = Locator.GetPlayerController();
-
             if (cc == null)
                 throw new Exception("PlayerCharacterController was null.");
 
-            var sectors = Object.FindObjectsOfType(typeof(Sector)).Cast<Sector>().ToArray();
+            var sectors = FindObjectsOfType(typeof(Sector)).Cast<Sector>().ToArray();
 
             var candidateSectors = sectors.Where(x =>
                     x.transform.gameObject.activeInHierarchy && !x.IsBrambleDimension() &&
@@ -160,20 +151,16 @@ namespace Goaaats.DeathTracker
         #region Save/Load
 
         private static string SavePath => StandaloneProfileManager.SharedInstance.GetValue<string>("_profilesPath");
-        private static string ActiveProfile => StandaloneProfileManager.SharedInstance.GetActiveProfile().profileName;
+        private static string ActiveProfile => StandaloneProfileManager.SharedInstance.currentProfile.profileName; 
 
         private void OnProfileDataSaved(bool success)
         {
-            var name = ActiveProfile;
-
             tracking.Save(SavePath);
             ModHelper.Console.WriteLine($"{tracking.TrackedDeaths.Count} Deaths saved.", MessageType.Success);
         }
 
         private void OnProfileReadDone()
         {
-            var name = ActiveProfile;
-
             tracking.Load(SavePath);
             ModHelper.Console.WriteLine($"{tracking.TrackedDeaths.Count} Deaths loaded.", MessageType.Success);
         }
